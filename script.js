@@ -110,7 +110,13 @@ const partyCalibrationPrices = [
     { min: 3000, max: Infinity, pricePerGame: 2000 }
 ];
 
-function calculateBoostByElo(currentElo, desiredElo, priceTable, markup, boostName) {
+const partyPricesByGame = partyPrices.map(tier => ({
+    min: tier.min,
+    max: tier.max,
+    pricePerGame: tier.pricePerElo * 25
+}));
+
+function calculateBoostByElo(currentElo, desiredElo, priceTable, markup) {
     if (currentElo >= desiredElo) {
         return { error: 'Конечный ELO должен быть больше начального' };
     }
@@ -119,7 +125,6 @@ function calculateBoostByElo(currentElo, desiredElo, priceTable, markup, boostNa
     }
 
     let totalCost = 0;
-    let totalEloGain = 0;
     let remaining = desiredElo - currentElo;
     let pos = currentElo;
 
@@ -131,9 +136,7 @@ function calculateBoostByElo(currentElo, desiredElo, priceTable, markup, boostNa
             const gain = Math.min(remaining, maxGain);
 
             if (gain > 0) {
-                const cost = gain * tier.pricePerElo;
-                totalCost += cost;
-                totalEloGain += gain;
+                totalCost += gain * tier.pricePerElo;
                 pos += gain;
                 remaining -= gain;
             }
@@ -155,9 +158,9 @@ function calculateBoostByElo(currentElo, desiredElo, priceTable, markup, boostNa
     };
 }
 
-function calculateCalibration(currentElo, games, priceTable, markup, boostName) {
-    if (games < 1 || games > 10) {
-        return { error: 'Количество игр должно быть от 1 до 10' };
+function calculateByGames(currentElo, games, priceTable, markup) {
+    if (games < 1) {
+        return { error: 'Количество игр должно быть не меньше 1' };
     }
     if (currentElo < 0) {
         return { error: 'ELO не может быть отрицательным' };
@@ -188,22 +191,22 @@ function calculateCalibration(currentElo, games, priceTable, markup, boostName) 
 
 function updateFields() {
     const boostType = document.getElementById('boostType').value;
-    const isCalibration = boostType === 'calibration' || boostType === 'party-calibration';
+    const isGamesMode = boostType === 'calibration' || boostType === 'party-calibration' || boostType === 'party';
 
     const targetLabel = document.getElementById('targetLabel');
     const targetInput = document.getElementById('targetInput');
     const targetHint = document.getElementById('targetHint');
     const currentLabel = document.getElementById('currentLabel');
 
-    if (isCalibration) {
-        targetLabel.textContent = 'Количество игр (1-10)';
+    if (isGamesMode) {
+        targetLabel.textContent = 'Количество игр';
         targetInput.placeholder = 'Например: 5';
         targetInput.value = 5;
         targetInput.min = 1;
-        targetInput.max = 10;
+        targetInput.max = 99999;
         targetInput.step = 1;
-        targetHint.textContent = '📌 Введите количество игр (максимум 10)';
-        targetHint.style.color = '#ff8c00';
+        targetHint.textContent = '';
+        targetHint.style.color = '#555';
         currentLabel.textContent = 'Текущее ELO';
     } else {
         targetLabel.textContent = 'Конечное ELO';
@@ -212,7 +215,7 @@ function updateFields() {
         targetInput.min = 0;
         targetInput.max = 99999;
         targetInput.step = 1;
-        targetHint.textContent = '📌 Введите конечный ELO';
+        targetHint.textContent = '';
         targetHint.style.color = '#555';
         currentLabel.textContent = 'Начальное ELO';
     }
@@ -230,35 +233,23 @@ function calculate() {
         return;
     }
 
-    const isCalibration = boostType === 'calibration' || boostType === 'party-calibration';
-
-    let priceTable, boostName, result;
+    let result;
 
     switch (boostType) {
         case 'solo':
-            priceTable = soloPrices;
-            boostName = 'Соло буст';
-            result = calculateBoostByElo(currentElo, targetValue, priceTable, markup, boostName);
+            result = calculateBoostByElo(currentElo, targetValue, soloPrices, markup);
             break;
         case 'party':
-            priceTable = partyPrices;
-            boostName = 'Пати буст';
-            result = calculateBoostByElo(currentElo, targetValue, priceTable, markup, boostName);
+            result = calculateByGames(currentElo, Math.round(targetValue), partyPricesByGame, markup);
             break;
         case 'calibration':
-            priceTable = calibrationPrices;
-            boostName = 'Калибровка (с передачей)';
-            result = calculateCalibration(currentElo, Math.round(targetValue), priceTable, markup, boostName);
+            result = calculateByGames(currentElo, Math.round(targetValue), calibrationPrices, markup);
             break;
         case 'party-calibration':
-            priceTable = partyCalibrationPrices;
-            boostName = 'Пати калибровка';
-            result = calculateCalibration(currentElo, Math.round(targetValue), priceTable, markup, boostName);
+            result = calculateByGames(currentElo, Math.round(targetValue), partyCalibrationPrices, markup);
             break;
         default:
-            priceTable = soloPrices;
-            boostName = 'Соло буст';
-            result = calculateBoostByElo(currentElo, targetValue, priceTable, markup, boostName);
+            result = calculateBoostByElo(currentElo, targetValue, soloPrices, markup);
     }
 
     if (result.error) {
@@ -266,7 +257,6 @@ function calculate() {
         return;
     }
 
-    // ТОЛЬКО ЦЕНА
     resultDiv.innerHTML = `
         <div class="price">${result.totalCost.toFixed(2)} <span>руб</span></div>
     `;
@@ -287,5 +277,3 @@ window.onload = function() {
     updateFields();
     calculate();
 };
-
-console.log('✅ Калькулятор CS2 загружен!');
