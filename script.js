@@ -116,6 +116,57 @@ const partyPricesByGame = partyPrices.map(tier => ({
     pricePerGame: tier.pricePerElo * 25
 }));
 
+function getPricePerGame(currentElo, priceTable) {
+    for (const tier of priceTable) {
+        if (currentElo >= tier.min && currentElo < tier.max) {
+            return tier.pricePerGame;
+        }
+    }
+    return null;
+}
+
+function calculateByGames(currentElo, games, priceTable, markup) {
+    if (games < 1) {
+        return { error: 'Количество игр должно быть не меньше 1' };
+    }
+    if (currentElo < 0) {
+        return { error: 'ELO не может быть отрицательным' };
+    }
+
+    let totalCost = 0;
+    let remainingGames = games;
+    let pos = currentElo;
+
+    for (const tier of priceTable) {
+        if (pos >= tier.min && pos < tier.max) {
+            const tierMax = tier.max === Infinity ? Infinity : tier.max;
+            const eloPerGame = 25;
+            const gamesInTier = Math.ceil((tierMax - pos) / eloPerGame);
+            const gamesToTake = Math.min(remainingGames, gamesInTier);
+
+            if (gamesToTake > 0) {
+                const cost = gamesToTake * tier.pricePerGame;
+                totalCost += cost;
+                pos += gamesToTake * eloPerGame;
+                remainingGames -= gamesToTake;
+            }
+        }
+        if (remainingGames <= 0) break;
+    }
+
+    if (remainingGames > 0) {
+        return { error: `Не хватает диапазонов для ${remainingGames} игр (ELO выше ${pos})` };
+    }
+
+    const multiplier = 1 + (markup / 100);
+    const finalCost = totalCost * multiplier;
+
+    return {
+        totalCost: Math.round(finalCost * 100) / 100,
+        error: null
+    };
+}
+
 function calculateBoostByElo(currentElo, desiredElo, priceTable, markup) {
     if (currentElo >= desiredElo) {
         return { error: 'Конечный ELO должен быть больше начального' };
@@ -149,37 +200,6 @@ function calculateBoostByElo(currentElo, desiredElo, priceTable, markup) {
         return { error: `Нет цен для ELO выше ${pos}` };
     }
 
-    const multiplier = 1 + (markup / 100);
-    const finalCost = totalCost * multiplier;
-
-    return {
-        totalCost: Math.round(finalCost * 100) / 100,
-        error: null
-    };
-}
-
-function calculateByGames(currentElo, games, priceTable, markup) {
-    if (games < 1) {
-        return { error: 'Количество игр должно быть не меньше 1' };
-    }
-    if (currentElo < 0) {
-        return { error: 'ELO не может быть отрицательным' };
-    }
-
-    let pricePerGame = null;
-
-    for (const tier of priceTable) {
-        if (currentElo >= tier.min && currentElo < tier.max) {
-            pricePerGame = tier.pricePerGame;
-            break;
-        }
-    }
-
-    if (pricePerGame === null) {
-        return { error: `Нет цены для ELO ${currentElo}` };
-    }
-
-    const totalCost = pricePerGame * games;
     const multiplier = 1 + (markup / 100);
     const finalCost = totalCost * multiplier;
 
