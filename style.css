@@ -85,7 +85,6 @@ h1 {
     font-size: 12px;
     color: #555;
     margin-top: 5px;
-    transition: color 0.3s;
 }
 
 input[type="number"]::-webkit-inner-spin-button,
@@ -144,98 +143,19 @@ select option {
 .result-box .placeholder {
     color: #555;
     font-size: 14px;
-    text-align: center;
 }
 
 .result-box .price {
     font-size: 34px;
     font-weight: 800;
     color: #ff8c00;
-    text-align: center;
-    width: 100%;
-}
-
-.result-box .price span {
-    font-size: 18px;
-    color: #888;
-    font-weight: 400;
+    animation: fadeSlide 0.3s ease forwards;
 }
 
 .result-box .error {
     color: #ff4757;
     font-weight: 600;
     font-size: 15px;
-    text-align: center;
-    width: 100%;
-}
-
-.details-box {
-    margin-top: 12px;
-    padding: 14px 18px;
-    background: #0a0a0a;
-    border-radius: 10px;
-    border: 1px solid #1a1a1a;
-    display: none;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.details-box.visible {
-    display: block;
-}
-
-.details-box .detail-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 0;
-    border-bottom: 1px solid #181818;
-    font-size: 13px;
-    color: #888;
-}
-
-.details-box .detail-row:last-child {
-    border-bottom: none;
-}
-
-.details-box .detail-row .range {
-    color: #aaa;
-}
-
-.details-box .detail-row .elo {
-    color: #ff8c00;
-    font-weight: 600;
-}
-
-.details-box .detail-row .cost {
-    color: #ffd93d;
-    font-weight: 600;
-}
-
-.details-box .total-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0 4px 0;
-    border-top: 2px solid #222;
-    margin-top: 6px;
-    font-size: 15px;
-    font-weight: 700;
-    color: #fff;
-}
-
-.details-box .total-row .total-price {
-    color: #ff8c00;
-    font-size: 18px;
-}
-
-.details-box::-webkit-scrollbar {
-    width: 4px;
-}
-.details-box::-webkit-scrollbar-track {
-    background: #0a0a0a;
-}
-.details-box::-webkit-scrollbar-thumb {
-    background: #ff8c00;
-    border-radius: 10px;
 }
 
 @keyframes fadeSlide {
@@ -247,8 +167,4 @@ select option {
         opacity: 1;
         transform: translateY(0);
     }
-}
-
-.result-box .price {
-    animation: fadeSlide 0.3s ease forwards;
 }
