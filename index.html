@@ -1,52 +1,46 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Калькулятор буста CS2</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Калькулятор буста CS2</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="container">
-    <h1>🎯 КАЛЬКУЛЯТОР БУСТА CS2</h1>
+  <h1>🎯 КАЛЬКУЛЯТОР БУСТА CS2</h1>
 
-    <!-- 1️⃣ ТИП БУСТА -->
-    <div class="form-group">
-        <label>Тип буста</label>
-        <select id="boostType">
-            <option value="solo" selected>Соло буст</option>
-            <option value="party">Пати буст </option>
-            <option value="calibration">Калибровка (с передачей)</option>
-            <option value="party-calibration">Пати калибровка</option>
-        </select>
-    </div>
+  <div class="form-group">
+    <label>Тип буста</label>
+    <select id="boostType">
+      <option value="solo" selected>Соло буст</option>
+      <option value="party">Пати буст</option>
+      <option value="calibration">Калибровка (с передачей)</option>
+      <option value="party-calibration">Пати калибровка</option>
+    </select>
+  </div>
 
-    <!-- 2️⃣ НАЧАЛЬНОЕ ELO -->
-    <div class="form-group">
-        <label id="currentLabel">Начальное ELO</label>
-        <input type="number" id="currentElo" value="1300" placeholder="Например: 1300">
-    </div>
+  <div class="form-group">
+    <label id="currentLabel">Начальное ELO</label>
+    <input type="number" id="currentElo" value="1300" placeholder="Например: 1300">
+  </div>
 
-    <!-- 3️⃣ КОНЕЧНОЕ ELO / КОЛИЧЕСТВО ИГР -->
-    <div class="form-group" id="targetGroup">
-        <label id="targetLabel">Конечное ELO</label>
-        <input type="number" id="targetInput" value="1561" placeholder="Например: 1561">
-        <small class="hint" id="targetHint">📌 Введите конечный ELO</small>
-    </div>
+  <div class="form-group">
+    <label id="targetLabel">Конечное ELO</label>
+    <input type="number" id="targetInput" value="1561" placeholder="Например: 1561">
+    <small class="hint" id="targetHint">📌 Введите конечный ELO</small>
+  </div>
 
-    <!-- НАЦЕНКА (опционально) -->
-    <div class="form-group">
-        <label>Наценка (%)</label>
-        <input type="number" id="markup" value="0" min="0" step="1" placeholder="0">
-    </div>
+  <div class="form-group">
+    <label>Наценка (%)</label>
+    <input type="number" id="markup" value="0" min="0" step="1" placeholder="0">
+  </div>
 
-    <!-- КНОПКА -->
-    <button class="btn-calc" onclick="calculate()">💰 Рассчитать цену</button>
+  <button class="btn-calc" onclick="calculate()">💰 Рассчитать цену</button>
 
-    <!-- РЕЗУЛЬТАТ -->
-    <div id="result" class="result-box">
-        <div class="placeholder">Введите данные и нажмите «Рассчитать»</div>
-    </div>
+  <div id="result" class="result-box">
+    <div class="placeholder">Введите данные и нажмите «Рассчитать»</div>
+  </div>
 </div>
 
 <script src="script.js"></script>
