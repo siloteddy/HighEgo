@@ -116,24 +116,49 @@ const partyPricesByGame = partyPrices.map(tier => ({
     pricePerGame: tier.pricePerElo * 25
 }));
 
-function getPricePerGame(currentElo, priceTable) {
-    for (const tier of priceTable) {
-        if (currentElo >= tier.min && currentElo < tier.max) {
-            return tier.pricePerGame;
-        }
-    }
-    return null;
-}
-
-function calculateByGames(currentElo, games, priceTable, markup) {
+function calculateByGames(currentElo, games, priceTable, markup, isCalibration = false) {
     if (games < 1) {
-        return { error: 'Количество игр должно быть не меньше 1' };
+        return { error: '❌ Количество игр должно быть не меньше 1' };
     }
     if (currentElo < 0) {
-        return { error: 'ELO не может быть отрицательным' };
+        return { error: '❌ ELO не может быть отрицательным' };
     }
 
     let totalCost = 0;
+
+    // Для калибровки - все игры по цене текущего ELO
+    if (isCalibration) {
+        // Ограничение: максимум 10 игр для калибровки
+        if (games > 10) {
+            return { error: '❌ Для калибровки максимум 10 игр' };
+        }
+
+        let pricePerGame = null;
+
+        // Находим цену для текущего ELO
+        for (const tier of priceTable) {
+            if (currentElo >= tier.min && currentElo < tier.max) {
+                pricePerGame = tier.pricePerGame;
+                break;
+            }
+        }
+
+        if (pricePerGame === null) {
+            return { error: '❌ Нет цены для текущего ELO' };
+        }
+
+        totalCost = games * pricePerGame;
+
+        const multiplier = 1 + (markup / 100);
+        const finalCost = totalCost * multiplier;
+
+        return {
+            totalCost: Math.round(finalCost * 100) / 100,
+            error: null
+        };
+    }
+
+    // Обычный режим (для party)
     let remainingGames = games;
     let pos = currentElo;
 
@@ -141,21 +166,21 @@ function calculateByGames(currentElo, games, priceTable, markup) {
         if (pos >= tier.min && pos < tier.max) {
             const tierMax = tier.max === Infinity ? Infinity : tier.max;
             const eloPerGame = 25;
-            const gamesInTier = Math.ceil((tierMax - pos) / eloPerGame);
-            const gamesToTake = Math.min(remainingGames, gamesInTier);
+            const gamesToReachMax = Math.ceil((tierMax - pos) / eloPerGame);
+            const gamesToTake = Math.min(remainingGames, gamesToReachMax);
 
             if (gamesToTake > 0) {
-                const cost = gamesToTake * tier.pricePerGame;
-                totalCost += cost;
+                totalCost += gamesToTake * tier.pricePerGame;
                 pos += gamesToTake * eloPerGame;
                 remainingGames -= gamesToTake;
             }
         }
+
         if (remainingGames <= 0) break;
     }
 
     if (remainingGames > 0) {
-        return { error: `Не хватает диапазонов для ${remainingGames} игр (ELO выше ${pos})` };
+        return { error: `❌ Не хватает диапазонов для ${remainingGames} игр (ELO выше ${pos})` };
     }
 
     const multiplier = 1 + (markup / 100);
@@ -169,10 +194,10 @@ function calculateByGames(currentElo, games, priceTable, markup) {
 
 function calculateBoostByElo(currentElo, desiredElo, priceTable, markup) {
     if (currentElo >= desiredElo) {
-        return { error: 'Конечный ELO должен быть больше начального' };
+        return { error: '❌ Конечный ELO должен быть больше начального' };
     }
     if (currentElo < 0 || desiredElo < 0) {
-        return { error: 'ELO не может быть отрицательным' };
+        return { error: '❌ ELO не может быть отрицательным' };
     }
 
     let totalCost = 0;
@@ -180,9 +205,8 @@ function calculateBoostByElo(currentElo, desiredElo, priceTable, markup) {
     let pos = currentElo;
 
     for (const tier of priceTable) {
-        const tierMax = tier.max === Infinity ? desiredElo : tier.max;
-
-        if (pos >= tier.min && pos < tierMax) {
+        if (pos >= tier.min && pos < tier.max) {
+            const tierMax = tier.max === Infinity ? desiredElo : tier.max;
             const maxGain = tierMax - pos;
             const gain = Math.min(remaining, maxGain);
 
@@ -197,7 +221,7 @@ function calculateBoostByElo(currentElo, desiredElo, priceTable, markup) {
     }
 
     if (remaining > 0) {
-        return { error: `Нет цен для ELO выше ${pos}` };
+        return { error: `❌ Нет цен для ELO выше ${pos}` };
     }
 
     const multiplier = 1 + (markup / 100);
@@ -223,10 +247,9 @@ function updateFields() {
         targetInput.placeholder = 'Например: 5';
         targetInput.value = 5;
         targetInput.min = 1;
-        targetInput.max = 99999;
+        targetInput.max = boostType === 'calibration' || boostType === 'party-calibration' ? 10 : 99999;
         targetInput.step = 1;
-        targetHint.textContent = '';
-        targetHint.style.color = '#555';
+        targetHint.textContent = '📌 Введите количество игр';
         currentLabel.textContent = 'Текущее ELO';
     } else {
         targetLabel.textContent = 'Конечное ELO';
@@ -235,8 +258,7 @@ function updateFields() {
         targetInput.min = 0;
         targetInput.max = 99999;
         targetInput.step = 1;
-        targetHint.textContent = '';
-        targetHint.style.color = '#555';
+        targetHint.textContent = '📌 Введите конечный ELO';
         currentLabel.textContent = 'Начальное ELO';
     }
 }
@@ -260,39 +282,46 @@ function calculate() {
             result = calculateBoostByElo(currentElo, targetValue, soloPrices, markup);
             break;
         case 'party':
-            result = calculateByGames(currentElo, Math.round(targetValue), partyPricesByGame, markup);
+            result = calculateByGames(currentElo, Math.round(targetValue), partyPricesByGame, markup, false);
             break;
         case 'calibration':
-            result = calculateByGames(currentElo, Math.round(targetValue), calibrationPrices, markup);
+            result = calculateByGames(currentElo, Math.round(targetValue), calibrationPrices, markup, true);
             break;
         case 'party-calibration':
-            result = calculateByGames(currentElo, Math.round(targetValue), partyCalibrationPrices, markup);
+            result = calculateByGames(currentElo, Math.round(targetValue), partyCalibrationPrices, markup, true);
             break;
         default:
             result = calculateBoostByElo(currentElo, targetValue, soloPrices, markup);
     }
 
     if (result.error) {
-        resultDiv.innerHTML = `<div class="error">⚠️ ${result.error}</div>`;
+        resultDiv.innerHTML = `<div class="error">${result.error}</div>`;
         return;
     }
 
     resultDiv.innerHTML = `
-        <div class="price">${result.totalCost.toFixed(2)} <span>руб</span></div>
+        <div class="price">${result.totalCost.toFixed(2)} руб</div>
     `;
 }
 
-document.querySelectorAll('input').forEach(input => {
-    input.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') calculate();
-    });
-});
+// Автоматический пересчет
+document.getElementById('currentElo').addEventListener('input', calculate);
+document.getElementById('targetInput').addEventListener('input', calculate);
+document.getElementById('markup').addEventListener('input', calculate);
 
 document.getElementById('boostType').addEventListener('change', function() {
     updateFields();
     calculate();
 });
 
+// Пересчет по Enter
+document.querySelectorAll('input').forEach(input => {
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') calculate();
+    });
+});
+
+// Инициализация
 window.onload = function() {
     updateFields();
     calculate();
